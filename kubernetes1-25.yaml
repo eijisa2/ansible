@@ -1,0 +1,73 @@
+AML
+---
+- hosts: all
+  become: true
+  pre_tasks:
+    - name: Update package lists
+      apt: update_cache=yes
+
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Add user to Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Enable Docker service
+      service:
+        name: docker
+        enabled: yes
+
+    - name: Install kubeadm, kubelet, and kubectl
+      apt:
+        name:
+          - kubeadm
+          - kubelet
+          - kubectl
+        state: present
+
+    - name: Disable swap (recommended for Kubernetes)
+      swap:
+        state: absent
+
+    - name: Ensure firewalld is not masking Docker (if applicable)
+      firewalld:
+        service: docker
+        permanent: yes
+        state: enabled
+
+- hosts: masters
+  become: true
+  tasks:
+    - name: Initialize Kubernetes master
+      kubeadm:
+        init_config:
+          apiserver:
+            advertise_address: 192.168.10.30  # Adjust if master has different IP
+          controlPlaneEndpoint: "192.168.10.30:6443"  # Adjust if using non-default port
+        kubernetes_version: "v1.25"  # Update with desired Kubernetes version
+
+    - name: Deploy Calico network plugin (recommended for its ease of use)
+      kubernetes:
+        name: calico
+        state: present
+        manifest:
+          url: https://docs.projectcalico.org/v3.26/getting-started/kubernetes/installation/manifests/calico.yaml
+
+- hosts: workers
+  become: true
+  tasks:
+    - name: Join worker nodes to the cluster
+      kubeadm:
+        join:
+          discovery_token_ca_cert: "{{ kubeadm_token_ca_cert }}"  # Use generated token from master
+          controlPlaneEndpoint: "192.168.10.30:6443"  # Adjust if using non-default port
+
+    - name: Verify worker node registration
+      kubelet:
+        info: yes
