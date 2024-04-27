@@ -11,7 +11,6 @@ CALICO CNI 3.27.2         - https://docs.tigera.io/calico/3.27/getting-started/k
 192.168.10.31 k8s-worker1
 192.168.10.32 k8s-worker2
 
-
 ### ALL: 
 
 sudo su
@@ -59,7 +58,7 @@ containerd config default | tee /etc/containerd/config.toml
 
 nano /etc/containerd/config.toml  #<<<<<<<<<<< manually edit and change SystemdCgroup to true (not systemd_cgroup)
 
-----
+----------------------------
 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
             BinaryName = ""
             CriuImagePath = ""
@@ -80,8 +79,9 @@ systemctl restart containerd
 swapoff -a  #<<<<<<<< just disable it in /etc/fstab instead
 
 nano /etc/fstab
+---
 #swap....
-
+----
 apt-get update
 apt-get install -y apt-transport-https ca-certificates curl gpg
 
@@ -94,29 +94,99 @@ apt-get update
 reboot
 
 sudo su
-
-apt-get install -y kubelet=1.29.1-1.1 kubeadm=1.29.1-1.1 kubectl=1.29.1-1.1
-apt-mark hold kubelet kubeadm kubectl
-
 # check swap config, ensure swap is 0
 free -m
 
+apt-get install -y kubelet=1.29.1-1.1 kubeadm=1.29.1-1.1 kubectl=1.29.1-1.1
 
-### ONLY ON CONTROL NODE .. control plane install:
+apt-mark hold kubelet kubeadm kubectl
+
+
+### ONLY ON MASTER  NODE .. control plane install:
 kubeadm init --pod-network-cidr 10.10.0.0/16 --kubernetes-version 1.29.1 --node-name k8s-master
 
+
+### RUN on MASTER node
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
 # add Calico 3.27.2 CNI 
 kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/tigera-operator.yaml
+
 wget https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/custom-resources.yaml
-vi custom-resources.yaml <<<<<< edit the CIDR for pods if its custom
+
+nano custom-resources.yaml <<<<<< edit the CIDR for pods if its custom
+
+-----------------
+spec:
+  # Configures Calico networking.
+  calicoNetwork:
+    # Note: The ipPools section cannot be modified post-install.
+    ipPools:
+    - blockSize: 26
+      cidr: 10.10.0.0/16         #---->>>> You can change it according to your pod network design
+      encapsulation: VXLANCrossSubnet
+      natOutgoing: Enabled
+      nodeSelector: all()
+---------------
+
 kubectl apply -f custom-resources.yaml
 
-# get worker node commands to run to join additional nodes into cluster
-kubeadm token create --print-join-command
-###
+watch kubectl get pods --all-namespaces #watch untill all pods are in running status
 
+-----
+
+NAMESPACE          NAME                                       READY   STATUS    RESTARTS   AGE
+calico-apiserver   calico-apiserver-85dcb49d95-7ghrl          1/1     Running   0          62s
+calico-apiserver   calico-apiserver-85dcb49d95-r96bp          1/1     Running   0          62s
+calico-system      calico-kube-controllers-5d97d56c58-rzlb2   1/1     Running   0          3m46s
+calico-system      calico-node-8tsjr                          1/1     Running   0          3m46s
+calico-system      calico-typha-597c5ff99f-f7xcv              1/1     Running   0          3m46s
+calico-system      csi-node-driver-5xt4v                      2/2     Running   0          3m46s
+kube-system        coredns-76f75df574-62fg4                   1/1     Running   0          51m
+kube-system        coredns-76f75df574-j2r2t                   1/1     Running   0          51m
+kube-system        etcd-k8s-master                            1/1     Running   0          52m
+kube-system        kube-apiserver-k8s-master                  1/1     Running   0          52m
+kube-system        kube-controller-manager-k8s-master         1/1     Running   0          52m
+kube-system        kube-proxy-npfmv                           1/1     Running   0          51m
+kube-system        kube-scheduler-k8s-master                  1/1     Running   0          52m
+tigera-operator    tigera-operator-748c69cf45-ctqrs           1/1     Running   0          6m42s
+-----------------------
+
+
+kubectl get nodes
+
+--------------------------------see the Node's Status is READY-------------------------
+NAME         STATUS   ROLES           AGE   VERSION
+k8s-master   Ready    control-plane   53m   v1.29.1
+-----------------------------------
+
+
+# get worker node commands to run to join additional nodes into cluster , run on the MASTER NODE
+
+kubeadm token create --print-join-command
+
+---------------------- You should see something like this------ Do not copy this one from here to your worker node this is just for an example----
+root@master:~# root@master:~# kubeadm token create --print-join-command
+kubeadm join 192.168.10.30:6443 --token ucnfxi.ty4f4y42f7jse0wx --discovery-token-ca-cert-hash sha256:4a1805bedc41b230136f6ac9bab69c973f6dfe25eefb20957ad023eb5e7860ce
+---------------------------------------
 
 ### ONLY ON WORKER nodes
-Run the command from the token create output above
+
+Copy to your join code and run it on your worker nodes. Run the command from the token to create the output LIKE above!
+
+kubectl get nodes
+
+-----------
+root@master:~# kubectl get nodes
+NAME         STATUS   ROLES           AGE    VERSION
+k8s-master   Ready    control-plane   145m   v1.29.1
+worker1      Ready    <none>          87m    v1.29.1
+-----------
+
+#to change the worker node role
+
+kubectl label node worker1 node-role.kubernetes.io/worker=worker
+
+
+
+
