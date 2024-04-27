@@ -1,11 +1,15 @@
-UBUNTU SERVER LTS 22.04.3 - https://ubuntu.com/download/server
+Distributor ID: Ubuntu
+Description:    Ubuntu 22.04.4 LTS
+Release:        22.04
+Codename:       jammy
+
 KUBERNETES 1.29.1         - https://kubernetes.io/releases/
 CONTAINERD 1.7.13         - https://containerd.io/releases/
 RUNC 1.1.12               - https://github.com/opencontainers/runc/releases
 CNI PLUGINS 1.4.0         - https://github.com/containernetworking/plugins/releases
 CALICO CNI 3.27.2         - https://docs.tigera.io/calico/3.27/getting-started/kubernetes/quickstart
 
-3 NODES, 2 vCPU, 8 GB RAM, 50GB Disk EACH
+3 NODES, 10 vCPU, 16 GB RAM, 100GB thin-disk EACH
 
 192.168.10.30 k8s-master
 192.168.10.31 k8s-worker1
@@ -161,7 +165,7 @@ k8s-master   Ready    control-plane   53m   v1.29.1
 -----------------------------------
 
 
-# get worker node commands to run to join additional nodes into cluster , run on the MASTER NODE
+# get worker node commands to run to join additional nodes into cluster, run on the MASTER NODE
 
 kubeadm token create --print-join-command
 
@@ -183,8 +187,9 @@ k8s-master   Ready    control-plane   145m   v1.29.1
 worker1      Ready    <none>          87m    v1.29.1
 -----------
 
-#to change the worker node role
+#to change the worker node role name
 #worker 1
+
 kubectl label node worker1 node-role.kubernetes.io/worker1=worker1
 
 #worker 2
