@@ -109,7 +109,7 @@ kubeadm init --pod-network-cidr 10.10.0.0/16 --kubernetes-version 1.29.1 --node-
 ### RUN on MASTER node
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
-# add Calico 3.27.2 CNI 
+# add Calico 3.27.2 CNI # add it to all NODES
 kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/tigera-operator.yaml
 
 wget https://raw.githubusercontent.com/projectcalico/calico/v3.27.2/manifests/custom-resources.yaml
@@ -184,8 +184,11 @@ worker1      Ready    <none>          87m    v1.29.1
 -----------
 
 #to change the worker node role
+#worker 1
+kubectl label node worker1 node-role.kubernetes.io/worker1=worker1
 
-kubectl label node worker1 node-role.kubernetes.io/worker=worker
+#worker 2
+kubectl label node worker2 node-role.kubernetes.io/worker2=worker2
 
 
 
