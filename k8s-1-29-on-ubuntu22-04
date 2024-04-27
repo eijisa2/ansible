@@ -55,9 +55,25 @@ tar Cxzvf /opt/cni/bin /tmp/cni-plugins-linux-amd64-v1.4.0.tgz
 
 mkdir -p /etc/containerd
 
-containerd config default | tee /etc/containerd/config.toml   #<<<<<<<<<<< manually edit and change SystemdCgroup to true (not systemd_cgroup)
+containerd config default | tee /etc/containerd/config.toml   
 
-vi /etc/containerd/config.toml
+nano /etc/containerd/config.toml  #<<<<<<<<<<< manually edit and change SystemdCgroup to true (not systemd_cgroup)
+
+----
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            BinaryName = ""
+            CriuImagePath = ""
+            CriuPath = ""
+            CriuWorkPath = ""
+            IoGid = 0
+            IoUid = 0
+            NoNewKeyring = false
+            NoPivotRoot = false
+            Root = ""
+            ShimCgroup = ""
+            SystemdCgroup = false  #--> find this one and change it to SystemdCgroup = true
+---------------------------
+
 
 systemctl restart containerd
 
