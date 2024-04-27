@@ -6,9 +6,10 @@ CNI PLUGINS 1.4.0         - https://github.com/containernetworking/plugins/relea
 CALICO CNI 3.27.2         - https://docs.tigera.io/calico/3.27/getting-started/kubernetes/quickstart
 
 3 NODES, 2 vCPU, 8 GB RAM, 50GB Disk EACH
-k8s-control   192.168.15.93
-k8s-1         192.168.15.94
-k8s-2         192.168.15.95
+
+192.168.10.30 k8s-master
+192.168.10.31 k8s-worker1
+192.168.10.32 k8s-worker2
 
 
 ### ALL: 
@@ -16,6 +17,12 @@ k8s-2         192.168.15.95
 sudo su
 
 printf "\n192.168.10.30 k8s-master\n192.168.10.31 k8s-worker1\n192.168.10.32 k8s-worker2\n\n" >> /etc/hosts
+
+--
+192.168.10.30 k8s-master
+192.168.10.31 k8s-worker1
+192.168.10.32 k8s-worker2
+---
 
 printf "overlay\nbr_netfilter\n" >> /etc/modules-load.d/containerd.conf
 
@@ -80,7 +87,7 @@ free -m
 
 
 ### ONLY ON CONTROL NODE .. control plane install:
-kubeadm init --pod-network-cidr 10.10.0.0/16 --kubernetes-version 1.29.1 --node-name k8s-control
+kubeadm init --pod-network-cidr 10.10.0.0/16 --kubernetes-version 1.29.1 --node-name k8s-master
 
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
